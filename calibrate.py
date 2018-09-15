@@ -15,15 +15,15 @@ import time
 #---fazer acoplar_requisito_1_mouse------------------------------------------------------------------------------------------
 
 # Definine as linhas e colunas do tabuleiro de xadrez
-rows = 8
-cols = 6
+board_w = 8
+board_h = 6
 
 # Set the termination criteria for the corner sub-pixel algorithm - Não sei o que é criteria
 criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.001)
 
 # Prepara os objetos-pontos: (0,0,0), (1,0,0), (2,0,0), ..., (6,5,0). Eles são na mesma quantidade para todas imagens
-objectPoints = np.zeros((rows * cols, 3), np.float32)
-objectPoints[:, :2] = np.mgrid[0:rows, 0:cols].T.reshape(-1, 2)
+objectPoints = np.zeros((board_w * board_h, 3), np.float32)
+objectPoints[:, :2] = np.mgrid[0:board_w, 0:board_h].T.reshape(-1, 2)
 
 #Cria arrays para armazenar os valores calibrados 
 mtx_values = []
@@ -66,7 +66,7 @@ while calibrations < 5:
 			gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 			# Encontra os cantos do tabuleiro
-			ret, corners = cv2.findChessboardCorners(gray, (rows, cols), None)
+			ret, corners = cv2.findChessboardCorners(gray, (board_w, board_h), None)
 	
 			# Tem certeza que o padrao de tabuleiro foi detectado
 			if ret:
@@ -78,7 +78,7 @@ while calibrations < 5:
 				imgPointsArray.append(corners)
 	
 				# Desenha os cantos na imagem
-				cv2.drawChessboardCorners(img, (rows, cols), corners, ret)
+				cv2.drawChessboardCorners(img, (board_w, board_h), corners, ret)
 	
 				# Mostra a imagem
 				cv2.imshow('capture', img)
@@ -103,7 +103,7 @@ while calibrations < 5:
 	
 	calibrations = calibrations + 1
 	print("Calculo de parametros feito. Digite ESC para iniciar a proxima calibraçao")
-	print("Diigite 'q' para acabar as calibrações")
+	print("Digite 'q' para acabar as calibrações")
 	while(True):
 		k = cv2.waitKey(30) & 0xff
 		if k == 27:
@@ -124,14 +124,21 @@ rvecs_std = np.std(rvecs_values,axis=0)
 tvecs_std = np.std(tvecs_values,axis=0)
 
 # Salva xml da media e desvio padrao
-cv_file = cv2.FileStorage("/xml/intrinsics.xml", cv2.FILE_STORAGE_WRITE)
-cv_file.write("intrinsics", mtx_std)
+cv_file = cv2.FileStorage("xml/intrinsics.xml", cv2.FILE_STORAGE_WRITE)
+cv_file.write("intrinsics_avg", mtx_avrg)
 cv_file.release()
 
-cv_file = cv2.FileStorage("/xml/distortion.xml", cv2.FILE_STORAGE_WRITE)
-cv_file.write("distotion", dist_avrg)
+cv_file = cv2.FileStorage("xml/intrinsics_std.xml", cv2.FILE_STORAGE_WRITE)
+cv_file.write("intrinsics_std", mtx_std)
 cv_file.release()
 
+cv_file = cv2.FileStorage("xml/distortion.xml", cv2.FILE_STORAGE_WRITE)
+cv_file.write("distortion_avg", dist_avrg)
+cv_file.release()
+
+cv_file = cv2.FileStorage("xml/distortion_std.xml", cv2.FILE_STORAGE_WRITE)
+cv_file.write("distortion_std", dist_std)
+cv_file.release()
 
 # Tudo feito, libera a captura
 captura.release()

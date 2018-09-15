@@ -10,6 +10,10 @@ parser.add_argument("requisito", type=int, nargs=1, choices=range(1, 5),
                     help="número do requisito de avaliação")
 parser.add_argument("-file", nargs="?", default=None, metavar="path/to/file",
                     help="Caminho para a imagem/vídeo")
+parser.add_argument("-distortion", nargs="?", default=None, metavar="path/to/file",
+                    help="Caminho para a matriz de distorção media")
+parser.add_argument("-intrinsics", nargs="?", default=None, metavar="path/to/file",
+                    help="Caminho para a matrinz intrinseca media")
 
 
 def openImage(file):
@@ -57,9 +61,60 @@ def getPixelsDistance(event, x, y, flags, params):
             pos1 = pos2 = None
 
 
-def main(requisite, file=None):
+def showRawAndUndistorted(file,
+                          distortion,
+                          intrinsics):
+    distMatrix = loadDistortionMatrix(distortion)
+    intMatrix = loadIntrinsicMatrix(intrinsics)
+
+    cv2.namedWindow('raw')
+    cv2.namedWindow('undistorted')
+
+    img = openImage(file)
+    h, w = img.shape[:2]
+
+    newCameraMtx, roi = cv2.getOptimalNewCameraMatrix(intMatrix, distMatrix,
+                                                      (w, h), 1, (w, h))
+
+    # undistort
+    undst = cv2.undistort(img, intMatrix, distMatrix, None, newCameraMtx)
+
+    # crop the image
+    x, y, w, h = roi
+    undst = undst[y:y + h, x:x + w]
+
+    while(1):
+        cv2.imshow("raw", img)
+        cv2.imshow("undistorted", undst)
+        cv2.waitKey(1)
+        if cv2.waitKey(20) & 0xFF == 27:
+            break
+    cv2.destroyAllWindows()
+
+
+def loadIntrinsicMatrix(intrinsics):
+    if intrinsics is None:
+        intrinsics = "xml/intrinsics_pedro.xml"
+    file = cv2.FileStorage(intrinsics, cv2.FileStorage_READ)
+    intMatrix = file.getNode("intrinsics_avg").mat()
+    file.release()
+    return intMatrix
+
+
+def loadDistortionMatrix(distortion):
+    if distortion is None:
+        distortion = "xml/distortion_pedro.xml"
+    file = cv2.FileStorage(distortion, cv2.FileStorage_READ)
+    distMatrix = file.getNode("distortion_avg").mat()
+    file.release()
+    return distMatrix
+
+
+def main(requisite, file=None, distortion=None, intrinsics=None):
     if requisite == 1:
         return imageDistance(file)
+    elif requisite == 2:
+        return showRawAndUndistorted(file, distortion, intrinsics)
 
 
 if __name__ == "__main__":
