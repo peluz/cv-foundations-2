@@ -98,6 +98,7 @@ def showRawAndUndistorted(distortion,
 def loadIntrinsicMatrix(intrinsics):
     if intrinsics is None:
         intrinsics = "xml/intrinsics_pedro.xml"
+        print("\nUsando matrix intrinseca de Pedro!\nRode calibrate.py pra conseguir a sua ou indique o caminho para a mesma usando a flag -intrinsics\n")
     file = cv2.FileStorage(intrinsics, cv2.FileStorage_READ)
     intMatrix = file.getNode("intrinsics_avg").mat()
     file.release()
@@ -107,6 +108,7 @@ def loadIntrinsicMatrix(intrinsics):
 def loadDistortionMatrix(distortion):
     if distortion is None:
         distortion = "xml/distortion_pedro.xml"
+        print("\nUsando vetor de distorção de Pedro!\nRode calibrate.py pra conseguir o seu ou indique o caminho para o mesmo usando a flag -distortion\n")
     file = cv2.FileStorage(distortion, cv2.FileStorage_READ)
     distMatrix = file.getNode("distortion_avg").mat()
     file.release()

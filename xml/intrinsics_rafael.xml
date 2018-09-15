@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <opencv_storage>
-<intrinsics type_id="opencv-matrix">
+<intrinsics_avg type_id="opencv-matrix">
   <rows>3</rows>
   <cols>3</cols>
   <dt>d</dt>
   <data>
     1.7239180312160022e+02 0. 8.9829164557548893e+00 0.
-    1.6968247748053773e+02 6.0203722073544839e+01 0. 0. 0.</data></intrinsics>
+    1.6968247748053773e+02 6.0203722073544839e+01 0. 0. 1.</data></intrinsics_avg>
 </opencv_storage>
