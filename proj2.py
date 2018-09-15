@@ -31,12 +31,16 @@ def imageDistance(file=None):
     global first, pos1, pos2, img, original
     first = True
     pos1 = pos2 = None
-    img = openImage(file)
-    original = openImage(file)
-    cv2.namedWindow('Imagem')
-    cv2.setMouseCallback('Imagem', getPixelsDistance)
-    while(1):
-        cv2.imshow("Imagem", img)
+
+    cap = cv2.VideoCapture(0)
+
+    while(True):
+        ret, img = cap.read()
+        original = img.copy()
+        cv2.namedWindow('Imagem')
+        cv2.setMouseCallback('Imagem', getPixelsDistance)
+        if ret:
+            cv2.imshow("Imagem", img)
         cv2.waitKey(1)
         if cv2.waitKey(20) & 0xFF == 27:
             break
@@ -52,9 +56,10 @@ def getPixelsDistance(event, x, y, flags, params):
             pos2 = [x, y]
         first = not first
         if pos1 is not None and pos2 is not None:
-            img = original.copy()
+            cv2.namedWindow('Medida')
             cv2.line(img, tuple(pos1),
                      tuple(pos2), (0, 0, 255), 2)
+            cv2.imshow("Medida", img)
             distance = np.linalg.norm(np.array(pos2) - np.array(pos1))
             print("Pos1:{}, Pos2:{}, Distance: {}".format(pos1,
                   pos2, distance))
