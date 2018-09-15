@@ -8,8 +8,6 @@ parser = argparse.ArgumentParser(
     description="Regua virtual")
 parser.add_argument("requisito", type=int, nargs=1, choices=range(1, 5),
                     help="número do requisito de avaliação")
-parser.add_argument("-file", nargs="?", default=None, metavar="path/to/file",
-                    help="Caminho para a imagem/vídeo")
 parser.add_argument("-distortion", nargs="?", default=None, metavar="path/to/file",
                     help="Caminho para a matriz de distorção media")
 parser.add_argument("-intrinsics", nargs="?", default=None, metavar="path/to/file",
@@ -27,8 +25,8 @@ def openImage(file):
     return img
 
 
-def imageDistance(file=None):
-    global first, pos1, pos2, img, original
+def imageDistance():
+    global first, pos1, pos2
     first = True
     pos1 = pos2 = None
 
@@ -36,9 +34,8 @@ def imageDistance(file=None):
 
     while(True):
         ret, img = cap.read()
-        original = img.copy()
         cv2.namedWindow('Imagem')
-        cv2.setMouseCallback('Imagem', getPixelsDistance)
+        cv2.setMouseCallback('Imagem', getPixelsDistance, img)
         if ret:
             cv2.imshow("Imagem", img)
         cv2.waitKey(1)
@@ -48,7 +45,8 @@ def imageDistance(file=None):
 
 
 def getPixelsDistance(event, x, y, flags, params):
-    global first, pos1, pos2, img, original
+    global first, pos1, pos2
+    img = params
     if event == cv2.EVENT_LBUTTONUP:
         if first:
             pos1 = [x, y]
@@ -66,9 +64,11 @@ def getPixelsDistance(event, x, y, flags, params):
             pos1 = pos2 = None
 
 
-def showRawAndUndistorted(file,
-                          distortion,
+def showRawAndUndistorted(distortion,
                           intrinsics):
+    global first, pos1, pos2
+    first = True
+    pos1 = pos2 = None
     distMatrix = loadDistortionMatrix(distortion)
     intMatrix = loadIntrinsicMatrix(intrinsics)
 
@@ -81,10 +81,11 @@ def showRawAndUndistorted(file,
         cv2.namedWindow('undistorted')
         h, w = img.shape[:2]
 
-        map1,map2=cv2.initUndistortRectifyMap(intMatrix, distMatrix, None, None, (w,h), cv2.CV_32FC1)
-
         # undistort
-        undst = cv2.remap(img, map1, map2, cv2.INTER_LINEAR)
+        undst = cv2.undistort(img, intMatrix, distMatrix)
+
+        cv2.setMouseCallback('raw', getPixelsDistance, img)
+        cv2.setMouseCallback('undistorted', getPixelsDistance, undst)
 
         cv2.imshow("raw", img)
         cv2.imshow("undistorted", undst)
@@ -112,13 +113,13 @@ def loadDistortionMatrix(distortion):
     return distMatrix
 
 
-def main(requisite, file=None, distortion=None, intrinsics=None):
+def main(requisite, distortion=None, intrinsics=None):
     if requisite == 1:
-        return imageDistance(file)
+        return imageDistance()
     elif requisite == 2:
-        return showRawAndUndistorted(file, distortion, intrinsics)
+        return showRawAndUndistorted(distortion, intrinsics)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    main(args.requisito[0], args.file)
+    main(args.requisito[0], args.distortion, args.intrinsics)
