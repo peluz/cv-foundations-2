@@ -67,23 +67,20 @@ def showRawAndUndistorted(file,
     distMatrix = loadDistortionMatrix(distortion)
     intMatrix = loadIntrinsicMatrix(intrinsics)
 
-    cv2.namedWindow('raw')
-    cv2.namedWindow('undistorted')
+    cap = cv2.VideoCapture(0)
 
-    img = openImage(file)
-    h, w = img.shape[:2]
+    while(True):
+        ret, img = cap.read()
 
-    newCameraMtx, roi = cv2.getOptimalNewCameraMatrix(intMatrix, distMatrix,
-                                                      (w, h), 1, (w, h))
+        cv2.namedWindow('raw')
+        cv2.namedWindow('undistorted')
+        h, w = img.shape[:2]
 
-    # undistort
-    undst = cv2.undistort(img, intMatrix, distMatrix, None, newCameraMtx)
+        map1,map2=cv2.initUndistortRectifyMap(intMatrix, distMatrix, None, None, (w,h), cv2.CV_32FC1)
 
-    # crop the image
-    x, y, w, h = roi
-    undst = undst[y:y + h, x:x + w]
+        # undistort
+        undst = cv2.remap(img, map1, map2, cv2.INTER_LINEAR)
 
-    while(1):
         cv2.imshow("raw", img)
         cv2.imshow("undistorted", undst)
         cv2.waitKey(1)
