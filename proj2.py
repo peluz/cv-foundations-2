@@ -9,6 +9,7 @@ DEFAULT_SQUARE = 28
 BOARD_WIDTH = 8
 BOARD_HEIGHT = 6
 VERBOSE = False
+transformMatrix = False
 
 
 parser = argparse.ArgumentParser(
@@ -58,8 +59,7 @@ def imageDistance():
 
 
 def getPixelsDistance(event, x, y, flags, params):
-    global first, pos1, pos2, fixedpos1, fixedpos2
-    fixedpos1 = fixedpos2 = None
+    global first, pos1, pos2
     img = params
     if event == cv2.EVENT_LBUTTONUP:
         if first:
@@ -75,8 +75,7 @@ def getPixelsDistance(event, x, y, flags, params):
             distance = np.linalg.norm(np.array(pos2) - np.array(pos1))
             print("Pos1:{}, Pos2:{}, Distance: {}".format(pos1,
                                                           pos2, distance))
-            fixedpos1 = pos1
-            fixedpos2 = pos2
+            getRealDistance(pos1, pos2)
             pos1 = pos2 = None
 
 
@@ -254,7 +253,10 @@ def getImgToWorldTransformation(intrinsics, rvec, tvec):
     return invHomographyMat
 
 
-def getRealDistance(transformMatrix, pos1, pos2):
+def getRealDistance(pos1, pos2):
+    global transformMatrix
+    if not transformMatrix.all():
+        return
     pos1.append(1)
     pos2.append(1)
     realPos1 = np.matmul(transformMatrix, np.array(pos1, dtype=np.float32).reshape((3, 1)))
@@ -268,7 +270,7 @@ def getRealDistance(transformMatrix, pos1, pos2):
 
 
 def visualRuler(distortion, intrinsics, rvec, tvec):
-    global first, pos1, pos2, fixedpos1, fixedpos2
+    global first, pos1, pos2, transformMatrix
     first = True
     pos1 = pos2 = None
     fixedpos1 = fixedpos2 = None
@@ -276,7 +278,7 @@ def visualRuler(distortion, intrinsics, rvec, tvec):
     intMatrix = loadIntrinsicMatrix(intrinsics)
     rvec = loadRVec(rvec)
     tvec = loadTVec(tvec)
-    imgToWorld = getImgToWorldTransformation(intMatrix,
+    transformMatrix = getImgToWorldTransformation(intMatrix,
                                              rvec,
                                              tvec)
     cap = cv2.VideoCapture(0)
@@ -298,9 +300,6 @@ def visualRuler(distortion, intrinsics, rvec, tvec):
 
             cv2.imshow("raw", img)
             cv2.imshow("undistorted", undst)
-            if fixedpos1 is not None and fixedpos2 is not None:
-                getRealDistance(imgToWorld, fixedpos1, fixedpos2)
-                fixedpos1 = fixedpos2 = None
         if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
