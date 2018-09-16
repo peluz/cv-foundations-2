@@ -58,7 +58,8 @@ def imageDistance():
 
 
 def getPixelsDistance(event, x, y, flags, params):
-    global first, pos1, pos2
+    global first, pos1, pos2, fixedpos1, fixedpos2
+    fixedpos1 = fixedpos2 = None
     img = params
     if event == cv2.EVENT_LBUTTONUP:
         if first:
@@ -74,6 +75,8 @@ def getPixelsDistance(event, x, y, flags, params):
             distance = np.linalg.norm(np.array(pos2) - np.array(pos1))
             print("Pos1:{}, Pos2:{}, Distance: {}".format(pos1,
                                                           pos2, distance))
+            fixedpos1 = pos1
+            fixedpos2 = pos2
             pos1 = pos2 = None
 
 
@@ -94,7 +97,6 @@ def showRawAndUndistorted(distortion,
         cv2.namedWindow('raw')
         cv2.namedWindow('undistorted')
         if ret:
-            # undistort
             undst = cv2.undistort(img, intMatrix, distMatrix)
 
             cv2.setMouseCallback('raw', getPixelsDistance, img)
@@ -102,6 +104,7 @@ def showRawAndUndistorted(distortion,
 
             cv2.imshow("raw", img)
             cv2.imshow("undistorted", undst)
+
         if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
@@ -251,10 +254,24 @@ def getImgToWorldTransformation(intrinsics, rvec, tvec):
     return invHomographyMat
 
 
+def getRealDistance(transformMatrix, pos1, pos2):
+    pos1.append(1)
+    pos2.append(1)
+    realPos1 = np.matmul(transformMatrix, np.array(pos1, dtype=np.float32).reshape((3, 1)))
+    realPos1 = realPos1[0:2] / realPos1[2]
+    realPos2 = np.matmul(transformMatrix, np.array(pos2, dtype=np.float32).reshape((3, 1)))
+    realPos2 = realPos2[0:2] / realPos2[2]
+    realDistance = np.linalg.norm(realPos2 - realPos1)
+    print("Pos1 real:\n{} metros\nPos2 real:\n{} metros\nDistancia real:\n{} metros".format(realPos1 / 1000.0,
+                                                                                            realPos2 / 1000.0,
+                                                                                            realDistance / 1000.0))
+
+
 def visualRuler(distortion, intrinsics, rvec, tvec):
-    global first, pos1, pos2
+    global first, pos1, pos2, fixedpos1, fixedpos2
     first = True
     pos1 = pos2 = None
+    fixedpos1 = fixedpos2 = None
     distMatrix = loadDistortionMatrix(distortion)
     intMatrix = loadIntrinsicMatrix(intrinsics)
     rvec = loadRVec(rvec)
@@ -271,18 +288,19 @@ def visualRuler(distortion, intrinsics, rvec, tvec):
         cv2.namedWindow('raw')
         cv2.namedWindow('undistorted')
 
-
         if ret:
-        # undistort
             undst = cv2.undistort(img, intMatrix, distMatrix)
 
             cv2.setMouseCallback('raw', getPixelsDistance,
-                                 [img, imgToWorld])
+                                 img)
             cv2.setMouseCallback('undistorted', getPixelsDistance,
-                                 [undst, imgToWorld])
+                                 undst)
 
             cv2.imshow("raw", img)
             cv2.imshow("undistorted", undst)
+            if fixedpos1 is not None and fixedpos2 is not None:
+                getRealDistance(imgToWorld, fixedpos1, fixedpos2)
+                fixedpos1 = fixedpos2 = None
         if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
