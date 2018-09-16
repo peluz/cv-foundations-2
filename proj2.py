@@ -2,6 +2,15 @@ import cv2
 import numpy as np
 import sys
 import argparse
+import time
+
+
+DEFAULT_SQUARE = 28
+D_MIN = 0
+D_MED = 0
+D_MAX = 0
+BOARD_WIDTH = 8
+BOARD_HEIGHT = 6
 
 
 parser = argparse.ArgumentParser(
@@ -12,6 +21,8 @@ parser.add_argument("-distortion", nargs="?", default=None, metavar="path/to/fil
                     help="Caminho para a matriz de distorção media")
 parser.add_argument("-intrinsics", nargs="?", default=None, metavar="path/to/file",
                     help="Caminho para a matrinz intrinseca media")
+parser.add_argument("-size", nargs="?", default=DEFAULT_SQUARE, type=float,
+                    help="Tamanho do lado do quadrado do tabuleiro em mm")
 
 
 def openImage(file):
@@ -60,7 +71,7 @@ def getPixelsDistance(event, x, y, flags, params):
             cv2.imshow("Medida", img)
             distance = np.linalg.norm(np.array(pos2) - np.array(pos1))
             print("Pos1:{}, Pos2:{}, Distance: {}".format(pos1,
-                  pos2, distance))
+                                                          pos2, distance))
             pos1 = pos2 = None
 
 
@@ -115,13 +126,103 @@ def loadDistortionMatrix(distortion):
     return distMatrix
 
 
-def main(requisite, distortion=None, intrinsics=None):
+def findBoardPoints(squareSize=DEFAULT_SQUARE):
+    boardPoints = []
+    for y in range(BOARD_HEIGHT):
+        for x in range(BOARD_WIDTH):
+            boardPoints.append((x * squareSize, y * squareSize, 0))
+    boardPoints = np.array(boardPoints, dtype=np.float32)
+    return boardPoints
+
+
+def findExtrinsicParams(distortion, intrinsics):
+    distMatrix = loadDistortionMatrix(distortion)
+    intMatrix = loadIntrinsicMatrix(intrinsics)
+    criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.001)
+    objectPoints = findBoardPoints()
+    cap = cv2.VideoCapture(0)
+    cv2.namedWindow('raw')
+    cv2.namedWindow('capture')
+
+    for distance in ["dmin", "dmax", "dmed"]:
+        print("Calibrando extrínsecos para distância " + distance)
+
+        rVecValues = []
+        tVecValues = []
+        objectPointsArray = [] # 3d pontos no mundo real
+        imgPointsArray = []
+        
+        screenshots = 0
+        while screenshots < 3:
+            spanspots = 0
+            while spanspots < 5:
+                _, img = cap.read()
+                cv2.imshow('raw', img)
+
+                global gray
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                ret, corners = cv2.findChessboardCorners(
+                    gray, (BOARD_WIDTH, BOARD_HEIGHT), None)
+
+                if ret:
+                    corners = cv2.cornerSubPix(
+                        gray, corners, (11, 11), (-1, -1), criteria)
+
+                    cv2.drawChessboardCorners(
+                        img, (BOARD_WIDTH, BOARD_HEIGHT), corners, ret)
+
+                    cv2.imshow('capture', img)
+                    spanspots += 1
+                cv2.waitKey(30) & 0xff
+            screenshots += 1
+            ret, rvec, tvec = cv2.solvePnP(objectPoints, corners, intMatrix,
+                                           distMatrix, flags=cv2.SOLVEPNP_ITERATIVE)
+            rVecValues.append(rvec)
+            tVecValues.append(tvec)
+            print(tVecValues)
+            print(rVecValues)
+            if screenshots < 3:
+                print("Buscando nova captura na mesma posição")
+            time.sleep(1)
+        print("Calculando parâmetros extrínsecos para distancia " + distance)
+        rvec_avg = np.average(rVecValues, axis=0)
+        rvec_std = np.average(rVecValues, axis=0)
+        tvec_avg = np.average(tVecValues, axis=0)
+        tvec_std = np.average(tVecValues, axis=0)
+        print(tvec_avg)
+        dist = float(input("Insira distância da captura em mm. Modo: " + distance + ": "))
+        name = str(input("Insira nome para a câmera em questão: "))
+        saveParameters(rvec_avg, rvec_std, tvec_avg, tvec_std, dist, name)
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+def saveParameters(rvec_avg, rvec_std, tvec_avg, tvec_std, dist, name):
+    cv_file = cv2.FileStorage("xml/rvec_{}_{}.xml".format(dist, name), cv2.FILE_STORAGE_WRITE)
+    cv_file.write("rvec_avg", rvec_avg)
+    cv_file.release()
+
+    cv_file = cv2.FileStorage("xml/rvec_std_{}_{}.xml".format(dist, name), cv2.FILE_STORAGE_WRITE)
+    cv_file.write("rvec_std", rvec_std)
+    cv_file.release()
+
+    cv_file = cv2.FileStorage("xml/tvec_{}_{}.xml".format(dist, name), cv2.FILE_STORAGE_WRITE)
+    cv_file.write("tvec_avg", tvec_avg)
+    cv_file.release()
+
+    cv_file = cv2.FileStorage("xml/tvec_std_{}_{}.xml".format(dist, name), cv2.FILE_STORAGE_WRITE)
+    cv_file.write("tvec_std", tvec_std)
+    cv_file.release()
+
+def main(requisite, distortion=None, intrinsics=None, size=DEFAULT_SQUARE):
     if requisite == 1:
         return imageDistance()
     elif requisite == 2:
         return showRawAndUndistorted(distortion, intrinsics)
+    elif requisite == 3:
+        return findExtrinsicParams(distortion, intrinsics)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    main(args.requisito[0], args.distortion, args.intrinsics)
+    main(args.requisito[0], args.distortion, args.intrinsics, args.size)
