@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<tvec_avg type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>1</cols>
+  <dt>d</dt>
+  <data>
+    -1.9088812996586629e+01 -1.4598271154788594e+02
+    2.7246462490390945e+03</data></tvec_avg>
+</opencv_storage>
