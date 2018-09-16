@@ -44,6 +44,7 @@ def imageDistance():
     pos1 = pos2 = None
 
     cap = cv2.VideoCapture(0)
+    delay = int((1 / int(cap.get(5))) * 1000)
 
     while(True):
         ret, img = cap.read()
@@ -51,8 +52,7 @@ def imageDistance():
         cv2.setMouseCallback('Imagem', getPixelsDistance, img)
         if ret:
             cv2.imshow("Imagem", img)
-        cv2.waitKey(1)
-        if cv2.waitKey(20) & 0xFF == 27:
+        if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
 
@@ -86,24 +86,23 @@ def showRawAndUndistorted(distortion,
     intMatrix = loadIntrinsicMatrix(intrinsics)
 
     cap = cv2.VideoCapture(0)
+    delay = int((1 / int(cap.get(5))) * 1000)
 
     while(True):
         ret, img = cap.read()
 
         cv2.namedWindow('raw')
         cv2.namedWindow('undistorted')
-        h, w = img.shape[:2]
+        if ret:
+            # undistort
+            undst = cv2.undistort(img, intMatrix, distMatrix)
 
-        # undistort
-        undst = cv2.undistort(img, intMatrix, distMatrix)
+            cv2.setMouseCallback('raw', getPixelsDistance, img)
+            cv2.setMouseCallback('undistorted', getPixelsDistance, undst)
 
-        cv2.setMouseCallback('raw', getPixelsDistance, img)
-        cv2.setMouseCallback('undistorted', getPixelsDistance, undst)
-
-        cv2.imshow("raw", img)
-        cv2.imshow("undistorted", undst)
-        cv2.waitKey(1)
-        if cv2.waitKey(20) & 0xFF == 27:
+            cv2.imshow("raw", img)
+            cv2.imshow("undistorted", undst)
+        if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
 
@@ -264,26 +263,27 @@ def visualRuler(distortion, intrinsics, rvec, tvec):
                                              rvec,
                                              tvec)
     cap = cv2.VideoCapture(0)
+    delay = int((1 / int(cap.get(5))) * 1000)
 
     while(True):
         ret, img = cap.read()
 
         cv2.namedWindow('raw')
         cv2.namedWindow('undistorted')
-        h, w = img.shape[:2]
 
+
+        if ret:
         # undistort
-        undst = cv2.undistort(img, intMatrix, distMatrix)
+            undst = cv2.undistort(img, intMatrix, distMatrix)
 
-        cv2.setMouseCallback('raw', getPixelsDistance,
-                             [img, imgToWorld])
-        cv2.setMouseCallback('undistorted', getPixelsDistance,
-                             [undst, imgToWorld])
+            cv2.setMouseCallback('raw', getPixelsDistance,
+                                 [img, imgToWorld])
+            cv2.setMouseCallback('undistorted', getPixelsDistance,
+                                 [undst, imgToWorld])
 
-        cv2.imshow("raw", img)
-        cv2.imshow("undistorted", undst)
-        cv2.waitKey(1)
-        if cv2.waitKey(20) & 0xFF == 27:
+            cv2.imshow("raw", img)
+            cv2.imshow("undistorted", undst)
+        if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
 
