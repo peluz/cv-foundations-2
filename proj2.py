@@ -289,17 +289,15 @@ def visualRuler(distortion, intrinsics, rvec, tvec):
 
         cv2.namedWindow('raw')
         cv2.namedWindow('undistorted')
-
         if ret:
             undst = cv2.undistort(img, intMatrix, distMatrix)
 
-            cv2.setMouseCallback('raw', getPixelsDistance,
-                                 img)
-            cv2.setMouseCallback('undistorted', getPixelsDistance,
-                                 undst)
+            cv2.setMouseCallback('raw', getPixelsDistance, img)
+            cv2.setMouseCallback('undistorted', getPixelsDistance, undst)
 
             cv2.imshow("raw", img)
             cv2.imshow("undistorted", undst)
+
         if cv2.waitKey(delay) & 0xFF == 27 or not ret:
             break
     cv2.destroyAllWindows()
