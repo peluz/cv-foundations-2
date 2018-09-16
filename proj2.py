@@ -6,11 +6,9 @@ import time
 
 
 DEFAULT_SQUARE = 28
-D_MIN = 0
-D_MED = 0
-D_MAX = 0
 BOARD_WIDTH = 8
 BOARD_HEIGHT = 6
+VERBOSE = False
 
 
 parser = argparse.ArgumentParser(
@@ -21,6 +19,10 @@ parser.add_argument("-distortion", nargs="?", default=None, metavar="path/to/fil
                     help="Caminho para a matriz de distorção media")
 parser.add_argument("-intrinsics", nargs="?", default=None, metavar="path/to/file",
                     help="Caminho para a matrinz intrinseca media")
+parser.add_argument("-tvec", nargs="?", default=None, metavar="path/to/file",
+                    help="Caminho para um vetor de translação em xml")
+parser.add_argument("-rvec", nargs="?", default=None, metavar="path/to/file",
+                    help="Caminho para um vetor de rotação em xml")  
 parser.add_argument("-size", nargs="?", default=DEFAULT_SQUARE, type=float,
                     help="Tamanho do lado do quadrado do tabuleiro em mm")
 
@@ -126,6 +128,25 @@ def loadDistortionMatrix(distortion):
     return distMatrix
 
 
+def loadRVec(rvec):
+    if rvec is None:
+        rvec = "xml/rvec_1030.0_pedro.xml"
+        print("\nUsando vetor de rotação de Pedro para dmed!\nRode o requisito 3 para conseguir o seu ou indique o caminho para o mesmo usando a flag -rvec\n")
+    file = cv2.FileStorage(rvec, cv2.FileStorage_READ)
+    rvec = file.getNode("rvec_avg").mat()
+    file.release()
+    return rvec
+
+
+def loadTVec(tvec):
+    if tvec is None:
+        tvec = "xml/tvec_1030.0_pedro.xml"
+        print("\nUsando vetor de translação de Pedro para dmed!\nRode o requisito 3 para conseguir o seu ou indique o caminho para o mesmo usando a flag -tvec\n")
+    file = cv2.FileStorage(tvec, cv2.FileStorage_READ)
+    tvec = file.getNode("tvec_avg").mat()
+    file.release()
+    return tvec
+
 def findBoardPoints(squareSize=DEFAULT_SQUARE):
     boardPoints = []
     for y in range(BOARD_HEIGHT):
@@ -214,15 +235,74 @@ def saveParameters(rvec_avg, rvec_std, tvec_avg, tvec_std, dist, name):
     cv_file.write("tvec_std", tvec_std)
     cv_file.release()
 
-def main(requisite, distortion=None, intrinsics=None, size=DEFAULT_SQUARE):
+
+def getImgToWorldTransformation(intrinsics, rvec, tvec):
+    rMat, _ = cv2.Rodrigues(rvec)
+    extrinsicMat = np.hstack((rMat, tvec))
+    projMat = np.matmul(intrinsics, extrinsicMat)
+    homographyMat = np.delete(projMat, 2, axis=1)
+    invHomographyMat = np.linalg.inv(homographyMat)
+    if VERBOSE:
+        print("rmat:\n{}".format(rMat))
+        print(rMat.shape)
+        print("extrinsics:\n{}".format(extrinsicMat))
+        print("projection:\n{}".format(projMat))
+        print("homography:\n{}".format(homographyMat))
+        print("inverse homography:\n{}".format(invHomographyMat))
+    return invHomographyMat
+
+
+def visualRuler(distortion, intrinsics, rvec, tvec):
+    global first, pos1, pos2
+    first = True
+    pos1 = pos2 = None
+    distMatrix = loadDistortionMatrix(distortion)
+    intMatrix = loadIntrinsicMatrix(intrinsics)
+    rvec = loadRVec(rvec)
+    tvec = loadTVec(tvec)
+    imgToWorld = getImgToWorldTransformation(intMatrix,
+                                             rvec,
+                                             tvec)
+    cap = cv2.VideoCapture(0)
+
+    while(True):
+        ret, img = cap.read()
+
+        cv2.namedWindow('raw')
+        cv2.namedWindow('undistorted')
+        h, w = img.shape[:2]
+
+        # undistort
+        undst = cv2.undistort(img, intMatrix, distMatrix)
+
+        cv2.setMouseCallback('raw', getPixelsDistance,
+                             [img, imgToWorld])
+        cv2.setMouseCallback('undistorted', getPixelsDistance,
+                             [undst, imgToWorld])
+
+        cv2.imshow("raw", img)
+        cv2.imshow("undistorted", undst)
+        cv2.waitKey(1)
+        if cv2.waitKey(20) & 0xFF == 27:
+            break
+    cv2.destroyAllWindows()
+
+
+def main(requisite, distortion=None,
+         intrinsics=None, size=DEFAULT_SQUARE,
+         rvec=None, tvec=None):
     if requisite == 1:
         return imageDistance()
     elif requisite == 2:
         return showRawAndUndistorted(distortion, intrinsics)
     elif requisite == 3:
         return findExtrinsicParams(distortion, intrinsics)
+    elif requisite == 4:
+        return visualRuler(distortion, intrinsics, rvec, tvec)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    main(args.requisito[0], args.distortion, args.intrinsics, args.size)
+    main(args.requisito[0], args.distortion,
+         args.intrinsics, args.size, args.rvec,
+         args.tvec)
