@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<tvec_std type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>1</cols>
+  <dt>d</dt>
+  <data>
+    1.2448438519065184e+00 1.2813451425053604e+00 3.4002186942612314e+00</data></tvec_std>
+</opencv_storage>
