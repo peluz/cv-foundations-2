@@ -35,3 +35,6 @@
 	- -rvec para forncecer caminho para vetor de rotação
 	- -size para fornecer tamanho do lado do quadrado do tabuleiro, em mm
 - [Repositório do github](https://github.com/peluz/cv-foundations-2/)
+- Obs:
+	- Para o requisito 2, pressupõe-se que foram obtidas as matrizes de intrinsecos e de distorções por meio do script calibrate.py. Ao rodar o requisito 2, as matrizes devem ser indicadas pelas flags correspondentes, descritas acima.
+	- Para o requisito 4, devem ser indicadas todas as matrizes obtidas da calibração da câmera. O objeto medido deverá se localizar no mesmo plano do padrão de calibração no momento de obtenção dos extrínsecos (requisito 3).
