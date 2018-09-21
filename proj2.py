@@ -9,7 +9,7 @@ DEFAULT_SQUARE = 28
 BOARD_WIDTH = 8
 BOARD_HEIGHT = 6
 VERBOSE = False
-transformMatrix = False
+transformMatrix = np.array(0)
 
 
 parser = argparse.ArgumentParser(
