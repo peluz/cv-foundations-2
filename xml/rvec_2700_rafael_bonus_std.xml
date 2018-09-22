@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <opencv_storage>
-<rvecs_std type_id="opencv-matrix">
+<rvec_std type_id="opencv-matrix">
   <rows>1</rows>
   <cols>3</cols>
   <dt>d</dt>
   <data>
-    9.6759436281701472e-03 8.4662342661258067e-03 5.3424206746120395e-03</data></rvecs_std>
+    9.6759436281701472e-03 8.4662342661258067e-03 5.3424206746120395e-03</data></rvec_std>
 </opencv_storage>
